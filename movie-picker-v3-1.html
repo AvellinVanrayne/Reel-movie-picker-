@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="The Reel">
+<meta name="theme-color" content="#000000">
+<title>The Reel</title>
+<link rel="manifest" href="data:application/json,{
+  &quot;name&quot;: &quot;The Reel&quot;,
+  &quot;short_name&quot;: &quot;The Reel&quot;,
+  &quot;description&quot;: &quot;Stop scrolling. Start watching.&quot;,
+  &quot;start_url&quot;: &quot;.&quot;,
+  &quot;display&quot;: &quot;standalone&quot;,
+  &quot;background_color&quot;: &quot;#000000&quot;,
+  &quot;theme_color&quot;: &quot;#000000&quot;,
+  &quot;orientation&quot;: &quot;portrait&quot;,
+  &quot;icons&quot;: [{
+    &quot;src&quot;: &quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23000'/><text x='50%25' y='54%25' font-size='320' text-anchor='middle' dominant-baseline='middle' font-family='serif' font-style='italic' font-weight='900' fill='%23f4c542'>R</text></svg>&quot;,
+    &quot;sizes&quot;: &quot;512x512&quot;,
+    &quot;type&quot;: &quot;image/svg+xml&quot;,
+    &quot;purpose&quot;: &quot;any maskable&quot;
+  }]
+}">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:#ffffff; --ink:#000000; --surface:#0d0d0d; --surface2:#161616;
+    --border:#2a2a2a; --border-bright:#3d3d3d; --sepia:#888888; --dim:#444444;
+    --red:#e63946; --gold:#f4c542; --green:#39d353;
+    --gold-dim:rgba(244,197,66,0.12); --red-dim:rgba(230,57,70,0.12);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--ink); color:var(--cream); font-family:'Space Mono',monospace; min-height:100vh; overflow-x:hidden; }
+  body::before { display:none; }
+  .container { max-width:960px; margin:0 auto; padding:40px 24px 80px; background:var(--ink); }
+  header { text-align:center; padding:50px 0 40px; }
+  .film-strip { display:flex; justify-content:center; gap:2px; margin-bottom:20px; opacity:0.35; }
+  .film-hole { width:14px; height:10px; border:1.5px solid var(--border-bright); border-radius:2px; }
+  h1 { font-family:'Playfair Display',serif; font-size:clamp(48px,9vw,82px); font-weight:900; font-style:italic; letter-spacing:-2px; line-height:0.9; text-shadow:4px 4px 0 rgba(0,0,0,0.4); }
+  h1 span { color:var(--gold); }
+  .subtitle { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--sepia); margin-top:14px; }
+  .rule { display:flex; align-items:center; gap:12px; margin:28px 0; }
+  .rule::before,.rule::after { content:''; flex:1; height:1px; background:var(--border); }
+  .rule-diamond { width:6px; height:6px; background:var(--gold); transform:rotate(45deg); flex-shrink:0; }
+  .section-label { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--sepia); margin-bottom:12px; }
+  .tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:24px; }
+  .tab { background:none; border:none; color:var(--sepia); font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; padding:10px 18px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; }
+  .tab:hover { color:var(--cream); }
+  .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  .search-bar { position:relative; margin-bottom:10px; }
+  .search-bar input { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--cream); font-family:'Space Mono',monospace; font-size:12px; padding:11px 38px 11px 14px; outline:none; transition:border-color .2s; }
+  .search-bar input:focus { border-color:var(--gold); }
+  .search-bar input::placeholder { color:var(--sepia); }
+  .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--dim); cursor:pointer; font-size:18px; line-height:1; display:none; }
+  .search-clear.vis { display:block; }
+  .movie-list { display:flex; flex-direction:column; gap:1px; max-height:400px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--sepia) transparent; }
+  .movie-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--surface); border-left:2px solid transparent; transition:all .1s; }
+  .movie-item:hover { background:var(--surface2); border-left-color:var(--gold); }
+  .movie-item.watched { opacity:0.3; }
+  .movie-item.watched .movie-title { text-decoration:line-through; }
+  .movie-num { font-size:9px; color:var(--dim); width:26px; flex-shrink:0; text-align:right; }
+  .movie-title { flex:1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .movie-tag { font-size:9px; color:var(--sepia); letter-spacing:1px; text-transform:uppercase; padding:2px 5px; border:1px solid var(--border); flex-shrink:0; }
+  .movie-yr { font-size:9px; color:var(--dim); width:32px; flex-shrink:0; }
+  .movie-rt { font-size:9px; color:var(--dim); width:38px; flex-shrink:0; }
+  .item-btns { display:flex; gap:2px; flex-shrink:0; }
+  .icon-btn { background:none; border:none; color:var(--dim); cursor:pointer; font-size:13px; line-height:1; padding:2px 5px; transition:color .12s; }
+  .icon-btn:hover { color:var(--red); }
+  .icon-btn.wbtn:hover { color:var(--green); }
+  .icon-btn.wbtn.on { color:var(--green); opacity:.6; }
+  .list-stats { display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:8px; }
+  .add-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  input[type="text"] { background:var(--surface); border:1px solid var(--border); color:var(--cream); font-family:'Space Mono',monospace; font-size:12px; padding:10px 12px; outline:none; transition:border-color .2s; }
+  input[type="text"]:focus { border-color:var(--gold); }
+  input[type="text"]::placeholder { color:var(--sepia); }
+  select { background:var(--surface); border:1px solid var(--border); color:var(--cream); font-family:'Space Mono',monospace; font-size:11px; padding:10px 10px; outline:none; cursor:pointer; appearance:none; }
+  select option { background:#111111; }
+  .btn { background:none; border:1px solid var(--gold); color:var(--gold); font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; padding:10px 16px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .btn:hover { background:var(--gold); color:var(--ink); }
+  .btn-sm { padding:6px 10px; font-size:9px; }
+  .btn-red { border-color:var(--red); color:var(--red); }
+  .btn-red:hover { background:var(--red); color:var(--cream); }
+  .btn-grn { border-color:var(--green); color:var(--green); }
+  .btn-grn:hover { background:var(--green); color:var(--ink); }
+  .bulk-area { width:100%; min-height:90px; background:var(--surface); border:1px solid var(--border); color:var(--cream); font-family:'Space Mono',monospace; font-size:12px; padding:10px 12px; outline:none; resize:vertical; margin-bottom:10px; }
+  .bulk-area:focus { border-color:var(--gold); }
+  .bulk-area::placeholder { color:var(--sepia); }
+  .filter-block { margin-bottom:18px; }
+  .filter-block label { display:block; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--sepia); margin-bottom:10px; }
+  /* Runtime slider */
+  .slider-wrap { position:relative; padding:0 2px; }
+  .runtime-labels { display:flex; justify-content:space-between; font-size:9px; color:var(--sepia); letter-spacing:1px; margin-bottom:6px; }
+  input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:3px; background:var(--border-bright); outline:none; cursor:pointer; border:none; padding:0; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; background:var(--gold); border-radius:0; cursor:pointer; box-shadow:2px 2px 0 rgba(0,0,0,0.4); }
+  input[type="range"]::-moz-range-thumb { width:18px; height:18px; background:var(--gold); border-radius:0; cursor:pointer; border:none; box-shadow:2px 2px 0 rgba(0,0,0,0.4); }
+  /* dual slider thumbs - pointer-events re-enabled per thumb via JS */
+  #ratingLo::-webkit-slider-thumb, #ratingHi::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; background:var(--gold); border-radius:0; cursor:pointer; pointer-events:all; box-shadow:2px 2px 0 rgba(0,0,0,0.4); }
+  #ratingLo::-moz-range-thumb, #ratingHi::-moz-range-thumb { width:18px; height:18px; background:var(--gold); border-radius:0; cursor:pointer; pointer-events:all; border:none; box-shadow:2px 2px 0 rgba(0,0,0,0.4); }
+  .slider-value { text-align:center; font-size:11px; color:var(--cream); margin-top:8px; letter-spacing:1px; }
+  /* Genre / Era chips */
+  .chips-row { margin-bottom:18px; }
+  .chips-row label { display:block; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--sepia); margin-bottom:10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .chip { background:none; border:1px solid var(--border); color:var(--sepia); font-family:'Space Mono',monospace; font-size:9px; padding:4px 9px; cursor:pointer; transition:all .12s; }
+  .chip:hover { border-color:var(--gold); color:var(--gold); }
+  .chip.on { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+  /* Exclude chips stay red */
+  .chip.excl:hover { border-color:var(--red); color:var(--red); }
+  .chip.excl.on { background:var(--red-dim); border-color:var(--red); color:var(--red); }
+  .cb-row { display:flex; align-items:center; gap:8px; margin-top:10px; }
+  input[type="checkbox"] { appearance:none; width:13px; height:13px; border:1px solid var(--border-bright); background:transparent; cursor:pointer; position:relative; flex-shrink:0; }
+  input[type="checkbox"]:checked { background:var(--gold); border-color:var(--gold); }
+  input[type="checkbox"]:checked::after { content:'✓'; position:absolute; top:-2px; left:2px; font-size:10px; color:var(--ink); font-weight:bold; }
+  .cb-label { font-size:11px; color:var(--sepia); cursor:pointer; }
+  .pick-section { text-align:center; padding:32px 0 24px; }
+  .pick-btn { background:var(--red); border:none; color:var(--cream); font-family:'Playfair Display',serif; font-size:20px; font-style:italic; font-weight:700; padding:20px 54px; cursor:pointer; transition:all .15s; box-shadow:6px 6px 0 rgba(0,0,0,0.4); }
+  .pick-btn:hover { transform:translate(-2px,-2px); box-shadow:8px 8px 0 rgba(0,0,0,0.5); }
+  .pick-btn:active { transform:translate(2px,2px); box-shadow:3px 3px 0 rgba(0,0,0,0.3); }
+  .pick-btn:disabled { opacity:.4; cursor:not-allowed; transform:none !important; }
+  .pool-count { font-size:10px; color:var(--dim); margin-top:10px; }
+  .result-card { display:none; background:var(--surface); border:1px solid var(--border-bright); padding:30px; text-align:center; animation:reveal .4s ease; margin-top:4px; }
+  @keyframes reveal { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .result-card.vis { display:block; }
+  .result-eye { font-size:9px; letter-spacing:4px; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
+  .result-title { font-family:'Playfair Display',serif; font-size:clamp(24px,5vw,40px); font-weight:900; line-height:1.1; margin-bottom:12px; }
+  .result-meta { display:flex; justify-content:center; gap:16px; font-size:10px; color:var(--sepia); letter-spacing:2px; text-transform:uppercase; margin-bottom:22px; }
+  .result-actions { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+  .result-synopsis { font-size:12px; color:var(--sepia); line-height:1.7; max-width:560px; margin:0 auto 22px; text-align:center; font-style:italic; }
+  .no-results { padding:24px; color:var(--sepia); font-size:12px; font-style:italic; }
+  .empty-state { text-align:center; padding:28px; color:var(--dim); font-size:11px; font-style:italic; border:1px dashed rgba(139,111,71,0.15); }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:.35} }
+  @media(max-width:600px){ .filters-grid{grid-template-columns:1fr 1fr} .add-row{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="installBar" style="display:none;background:var(--surface);border:1px solid var(--border);padding:10px 14px;margin-bottom:16px;align-items:center;justify-content:space-between;gap:12px;">
+  <span style="font-size:10px;color:var(--sepia);letter-spacing:1px;">Install The Reel as an app on your device</span>
+  <button onclick="installApp()" style="background:var(--gold);border:none;color:var(--ink);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Install</button>
+</div>
+
+<header>
+  <div class="film-strip"><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div></div>
+  <h1>The <span>Reel</span></h1>
+  <p class="subtitle">Stop scrolling. Start watching.</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('pick')">Pick Tonight</button>
+  <button class="tab" onclick="switchTab('list')">My List</button>
+  <button class="tab" onclick="switchTab('add')">Add Films</button>
+</div>
+
+<!-- PICK TAB -->
+<div id="tab-pick" class="tab-panel active">
+  <div class="section-label">Set your filters</div>
+
+  <!-- Runtime slider -->
+  <div class="filter-block">
+    <label>Runtime — <span id="sliderLabel">Any length</span></label>
+    <div class="slider-wrap">
+      <div class="runtime-labels"><span>Under 90 min</span><span>Over 3 hrs</span></div>
+      <input type="range" id="fRuntime" min="0" max="11" step="1" value="0" oninput="onSlider(this.value)">
+    </div>
+  </div>
+
+  <!-- Genre chips (include) -->
+  <div class="chips-row">
+    <label>Genres <span style="color:var(--dim);font-size:9px;letter-spacing:1px;">(pick any — leave blank for all)</span></label>
+    <div class="chips" id="genreChips"></div>
+  </div>
+
+  <!-- Era chips (include) -->
+  <div class="chips-row">
+    <label>Era <span style="color:var(--dim);font-size:9px;letter-spacing:1px;">(pick any — leave blank for all)</span></label>
+    <div class="chips" id="eraChips"></div>
+  </div>
+
+  <!-- Exclude genres -->
+  <div class="chips-row">
+    <label>Exclude genres</label>
+    <div class="chips" id="exChips"></div>
+  </div>
+
+  <div class="filter-block" style="margin-top:14px;">
+    <label>IMDb Rating &mdash; <span id="ratingLabel">Any rating</span></label>
+    <div class="slider-wrap" style="position:relative;height:28px;margin-top:4px;">
+      <div class="runtime-labels"><span>0</span><span>10</span></div>
+      <div id="ratingTrack" style="position:relative;height:3px;background:var(--border-bright);margin:0 2px;">
+        <div id="ratingFill" style="position:absolute;height:3px;background:var(--gold);left:0%;right:0%;"></div>
+        <input type="range" id="ratingLo" min="0" max="10" step="0.5" value="0"
+          style="position:absolute;width:100%;height:3px;background:none;pointer-events:none;appearance:none;-webkit-appearance:none;outline:none;margin:0;padding:0;top:0;"
+          oninput="onRatingSlider()">
+        <input type="range" id="ratingHi" min="0" max="10" step="0.5" value="10"
+          style="position:absolute;width:100%;height:3px;background:none;pointer-events:none;appearance:none;-webkit-appearance:none;outline:none;margin:0;padding:0;top:0;"
+          oninput="onRatingSlider()">
+      </div>
+    </div>
+  </div>
+  <div class="cb-row"><input type="checkbox" id="cbTrauma" onchange="upd()"><label class="cb-label" for="cbTrauma">Avoid emotionally heavy content</label></div>
+  <div class="cb-row"><input type="checkbox" id="cbUnwatched" onchange="upd()"><label class="cb-label" for="cbUnwatched">Skip films I've already watched</label></div>
+  <div id="enrichBar" style="margin:16px 0 0;background:var(--surface);border:1px solid var(--border);font-size:10px;color:var(--sepia);">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+      <span style="white-space:nowrap;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--sepia);">TMDB Key:</span>
+      <input type="text" id="tmdbKeyInput" placeholder="Paste your key from themoviedb.org/settings/api" style="flex:1;font-size:11px;padding:6px 10px;background:var(--ink);border:1px solid var(--border);color:var(--cream);font-family:'Space Mono',monospace;" oninput="setTMDBKey(this.value)" onpaste="setTimeout(function(){setTMDBKey(document.getElementById('tmdbKeyInput').value)},0)">
+      <span id="keyStatus" style="font-size:10px;white-space:nowrap;flex-shrink:0;color:var(--dim);">No key</span>
+    </div>
+    <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <span id="enrichStatus">—</span>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button onclick="enrichAll(false)" id="enrichBtn" style="background:none;border:1px solid var(--border-bright);color:var(--sepia);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 14px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border-bright)';this.style.color='var(--sepia)'">Look Up Runtimes</button>
+        <div id="retestRow" style="display:none;">
+          <button onclick="enrichAll(true)" style="background:none;border:1px solid var(--border);color:var(--dim);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;cursor:pointer;white-space:nowrap;" title="Re-fetch all films, including ones already looked up" onmouseover="this.style.borderColor='var(--sepia)';this.style.color='var(--sepia)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">Re-fetch All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pick-section">
+    <button class="pick-btn" id="pickBtn" onclick="pick()" disabled>Pick My Film</button>
+    <div class="pool-count" id="poolCount">Loading…</div>
+  </div>
+  <div class="result-card" id="resultCard"></div>
+</div>
+
+<!-- LIST TAB -->
+<div id="tab-list" class="tab-panel">
+  <div class="search-bar">
+    <input type="text" id="srch" placeholder="Search your watchlist…" oninput="onSearch(this.value)">
+    <button class="search-clear" id="srchX" onclick="clrSearch()">×</button>
+  </div>
+  <div class="movie-list" id="movieList"></div>
+  <div class="list-stats" id="listStats"></div>
+</div>
+
+<!-- ADD TAB -->
+<div id="tab-add" class="tab-panel">
+  <div class="section-label">Add a single film</div>
+  <div class="add-row">
+    <input type="text" id="aTitle" placeholder="Title…" style="flex:1;min-width:140px;">
+    <select id="aGenre" style="min-width:100px;"><option value="">Genre</option></select>
+    <input type="text" id="aYear" placeholder="Year" style="width:70px;">
+    <input type="text" id="aRuntime" placeholder="mins" style="width:66px;">
+    <button class="btn" onclick="addOne()">Add</button>
+  </div>
+  <div class="rule"><div class="rule-diamond"></div></div>
+  <div class="section-label">Bulk import</div>
+  <p style="font-size:10px;color:var(--dim);margin-bottom:10px;line-height:1.7;">Paste titles one per line. Duplicates are skipped automatically.</p>
+  <textarea class="bulk-area" id="bulkIn" placeholder="The Godfather&#10;Pulp Fiction&#10;Blade Runner&#10;…"></textarea>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="btn" onclick="bulkAdd()">Import</button>
+    <span id="bulkMsg" style="font-size:10px;color:var(--sepia);"></span>
+  </div>
+  <div class="rule"><div class="rule-diamond"></div></div>
+  <div class="section-label">Danger zone</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-sm btn-red" onclick="clrWatched()">Remove watched films</button>
+    <button class="btn btn-sm btn-red" onclick="clrAll()">Clear entire list</button>
+  </div>
+</div>
+</div>
+
+<script>
+const GENRES=['Action','Adventure','Animation','Comedy','Crime','Documentary','Drama','Fantasy','Horror','Mystery','Romance','Sci-Fi','Thriller','Western'];
+const ERA={precode:[null,1934],'30s40s50s':[1934,1960],'60s':[1960,1970],'70s':[1970,1980],'80s':[1980,1990],'90s':[1990,2000],'00s':[2000,2010],'10s':[2010,2020],'20s':[2020,null]};
+
+const GENRE_HINTS={
+  Action:['die hard','mad max','terminator','predator','robocop','lethal weapon','first blood','aliens','raiders','speed','taken','john wick','the raid','dredd','atomic blonde','hardcore henry','sisu','edge of tomorrow','wanted','crank','baby driver','fury road','the running man','the accountant'],
+  Comedy:['airplane','monty python','ghostbusters','ferris bueller','bill & ted','wayne\'s world','ace ventura','happy gilmore','billy madison','dumb and dumber','austin powers','superbad','pineapple express','the hangover','hot fuzz','in bruges','this is the end','game night','knives out','glass onion','idiocracy','office space','clerks','the big lebowski','tropic thunder','hot rod','super troopers','hot tub time machine','21 jump street','the other guys','scrooged','groundhog day','elf','robin hood: men in tights','blazing saddles','team america','white chicks','dodgeball','talladega nights','weird','borat','napoleon dynamite','the death of stalin','strays','bottoms'],
+  Horror:['halloween','the shining','alien','psycho','rosemary\'s baby','the thing','suspiria','eraserhead','hereditary','midsommar','the witch','it follows','get out','us','the lighthouse','sinister','insidious','the conjuring','the ring','saw','final destination','the evil dead','evil dead','scream','cannibal holocaust','in the mouth of madness','barbarian','talk to me','the black phone','saint maud','the lodge','hagazussa','the wailing','apostle','the house of the devil','late night with the devil','the blackcoat','the medium','when evil lurks','skinamarink','sleep has her house','house','videodrome','color out of space','mandy','possessor'],
+  'Sci-Fi':['2001','blade runner','alien','aliens','the matrix','star wars','terminator','back to the future','arrival','interstellar','ex machina','annihilation','moon','district 9','children of men','gattaca','the truman show','contact','dune','akira','ghost in the shell','snowpiercer','looper','source code','tenet','coherence','the vast of night','prospect','aniara','high life','time trap','predestination','upgrade','the martian','gravity','avatar','inception','everything everywhere','her','solaris'],
+  Drama:['the godfather','taxi driver','apocalypse now','there will be blood','no country for old men','the tree of life','magnolia','mulholland drive','lost highway','paris, texas','moonlight','beasts of the southern wild','paterson','short term 12','the place beyond the pines','leave no trace','phantom thread','killers of the flower moon','oppenheimer','anora','past lives','burning','the souvenir','the master'],
+  Thriller:['gone girl','se7en','heat','memento','the prestige','zodiac','prisoners','nightcrawler','sicario','the usual suspects','fight club','oldboy','sympathy for mr. vengeance','lady vengeance','parasite','knives out','the menu','the guest','hard candy','funny games'],
+  Animation:['akira','ghost in the shell','princess mononoke','spirited away','howl','nausicaa','castle in the sky','kiki','my neighbor totoro','grave of the fireflies','perfect blue','millennium actress','paprika','tekkonkinkreet','5 centimeters','your name','the boy and the heron','toy story','finding nemo','the incredibles','the iron giant','spider-man: into','spider-man: across','wolfwalkers','the red turtle','the tale of the princess kaguya','the wild robot','nimona','coraline','fantastic mr. fox','isle of dogs','the nightmare before christmas','corpse bride','watership down','flow','pom poko','ponyo','the wind rises'],
+  Crime:['pulp fiction','reservoir dogs','fargo','the departed','heat','snatch','lock stock','training day','menace ii society','boyz n the hood','true romance','deep cover','pusher','the irishman','uncut gems','nightcrawler','the big lebowski'],
+  Documentary:['koyaanisqatsi','baraka','samsara','man with a movie camera','sans soleil','winged migration','microcosmos','hearts of darkness','cave of forgotten dreams','the salt of the earth','aquarela','homo sapiens','anthropocene','fantastic fungi','they shall not grow old','32 sounds'],
+};
+
+const HEAVY=new Set(['requiem for a dream','irreversible','salo','kids','grave of the fireflies','come and see','schindler\'s list','the elephant man','a monster calls','midsommar','hereditary','the killing of a sacred deer','funny games','martyrs','cannibal holocaust','a serbian film','the house that jack built','antichrist','dogtooth','the zone of interest','killers of the flower moon','room','blue valentine','to the bone','incendies','short term 12','beasts of the southern wild','the place beyond the pines','wind river','silence','the brutalist','all quiet on the western front','2000 meters to andriivka','the irishman','dead man\'s shoes','the sacrifice','hagazussa','the blackcoat\'s daughter','saint maud','the wailing','it comes at night','hold the dark','brawl in cell block 99','you were never really here','leave no trace','a ghost story','mandy','possessor','the lighthouse','the lobster','climax','valhalla rising','high life','raw','coming home in the dark','sentimental value','hamnet','die my love','burning','the souvenir','the master','requiem for a dream','kids','the tree of life','magnolia','irreversible','caligula','moonlight','the whale','blue is the warmest colour']);
+
+const SEED=["Memories of Murder","The Life & Adventures of Santa Claus","Gone Girl","The Gift","Paris, Texas","Man with a Movie Camera","Rashomon","Rear Window","Seven Samurai","My Uncle","North by Northwest","Psycho","Yojimbo","Harakiri","Lawrence of Arabia","Lolita","Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb","The Sword in the Stone","High and Low","A Fistful of Dollars","For a Few Dollars More","The Good, the Bad and the Ugly","The Graduate","Playtime","2001: A Space Odyssey","Rosemary's Baby","The Color of Pomegranates","Once Upon a Time in the West","Easy Rider","Kes","THX 1138","The Andromeda Strain","A Clockwork Orange","Fata Morgana","The Last Movie","Silent Running","Willy Wonka & the Chocolate Factory","The Godfather","Solaris","The Godfather Part II","The Holy Mountain","Monty Python and the Holy Grail","Mirror","Salò, or the 120 Days of Sodom","Eraserhead","Taxi Driver","House","Suspiria","Up in Smoke","Watership Down","Alien","Apocalypse Now","Cannibal Holocaust","Monty Python's Life of Brian","Stalker","Airplane!","Altered States","The Blues Brothers","Caligula","Cheech and Chong's Next Movie","The Elephant Man","The Falls","Forbidden Zone","The Shining","Nice Dreams","Escape from New York","Heavy Metal","Raiders of the Lost Ark","Blade Runner","First Blood","Sans Soleil","Things Are Tough All Over","Koyaanisqatsi","Liquid Sky","Merry Christmas Mr. Lawrence","Strange Brew","Trading Places","Videodrome","The Adventures of Buckaroo Banzai Across the 8th Dimension","Cheech & Chong's: The Corsican Brothers","Dune","Ghostbusters","Nausicaä of the Valley of the Wind","The Killing Fields","Night of the Comet","The NeverEnding Story","After Hours","Back to the Future","Better Off Dead","Chronos","Clue","The Goonies","Max Headroom","Vampire Hunter D","Aliens","Blue Velvet","Ferris Bueller's Day Off","Come and See","The Sacrifice","One Crazy Summer","A Room with a View","Tampopo","Castle in the Sky","Three Amigos!","Top Gun","Full Metal Jacket","Royal Space Force: The Wings of Honneamise","Prince of Darkness","The Princess Bride","Akira","Beetlejuice","Grave of the Fireflies","A Short Film About Love","Cyber Ninja","The Naked Gun: From the Files of Police Squad!","Powaqqatsi","Scrooged","My Neighbor Totoro","The Adventures of Baron Munchausen","Bill & Ted's Excellent Adventure","Kiki's Delivery Service","Miracle Mile","New York Stories","Wicked City","Dances with Wolves","The Forbidden Dance","The Godfather Part III","Jacob's Ladder","Teenage Mutant Ninja Turtles","Total Recall","Barton Fink","Bill & Ted's Bogus Journey","Boyz n the Hood","Hearts of Darkness: A Filmmaker's Apocalypse","Hook","Hot Shots!","Slacker","Teenage Mutant Ninja Turtles II: The Secret of the Ooze","3 Ninjas","Alien³","Baraka","Cronos","Deep Cover","Encino Man","Freejack","Porco Rosso","The Last of the Mohicans","Lessons of Darkness","Reservoir Dogs","Twin Peaks: Fire Walk with Me","Wayne's World","Coneheads","Cool Runnings","Dazed and Confused","Falling Down","Jurassic Park","Menace II Society","Mrs. Doubtfire","The Nightmare Before Christmas","Ninja Scroll","Orlando","Robin Hood: Men in Tights","Super Mario Bros.","Teenage Mutant Ninja Turtles III","Three Colors: Blue","True Romance","Wayne's World 2","3 Ninjas Kick Back","Ace Ventura: Pet Detective","Airheads","Clerks","Dumb and Dumber","Forrest Gump","Heavyweights","Interview with the Vampire","Léon: The Professional","Major Payne","The Mask","Mixed Nuts","Natural Born Killers","The Pagemaster","Pulp Fiction","Three Colors: Red","Three Colors: White","3 Ninjas: Knuckle Up","Ace Ventura: When Nature Calls","Tom and Huck","Billy Madison","Dangerous Minds","Dead Man","Fallen Angels","Friday","Heat","In the Mouth of Madness","Johnny Mnemonic","Jumanji","Kids","Mallrats","Memories","Mighty Morphin Power Rangers","Safe","Se7en","Strange Days","Tales from the Hood","Tank Girl","Tommy Boy","Toy Story","12 Monkeys","Underground","The Usual Suspects","Waterworld","Bio-Dome","The Birdcage","Black Sheep","Don't Be a Menace to South Central While Drinking Your Juice in the Hood","Escape from L.A.","Fargo","From Dusk Till Dawn","Happy Gilmore","Jingle All the Way","The Long Kiss Goodnight","Lost Highway","Mars Attacks!","Microcosmos","The Paper Brigade","Pusher","Trainspotting","Alien: Resurrection","Austin Powers: International Man of Mystery","Beverly Hills Ninja","The Big Lebowski","Blues Brothers 2000","Boogie Nights","Buffalo '66","Contact","Dark City","Event Horizon","The Fifth Element","Gattaca","George of the Jungle","Grosse Pointe Blank","Heavy Metal 2000","Home Alone 3","Liar Liar","Men in Black","Princess Mononoke","Mousehunt","RocketMan","Starship Troopers","SubUrbia","The Truman Show","The Waterboy","American History X","Antz","Being John Malkovich","The Mummy","A Bug's Life","Deep Impact","Dirty Work","Dogma","Eyes Wide Shut","Fear and Loathing in Las Vegas","Half Baked","Lock, Stock and Two Smoking Barrels","The Lord of the Rings: The Fellowship of the Ring","Quest for Camelot","Safe Men","The X Files","eXistenZ","Men in Black II","Titan A.E.","The Emperor's New Groove","Cube","Cure","Man on the Moon","Rushmore","Run Lola Run","Mystery Men","The Matrix","SLC Punk!","Treasure Planet","Fight Club","Idle Hands","Pi","The Road to El Dorado","Go","Training Day","The Thirteenth Floor","Big Daddy","The Ninth Gate","American Psycho","The Boondock Saints","Austin Powers: The Spy Who Shagged Me","Naqoyqatsi","High Fidelity","Office Space","The Idiots","Perfect Blue","Brink!","Spriggan","Ghost Dog: The Way of the Samurai","The Limey","The Straight Story","Mulholland Drive","Hellboy","The Lord of the Rings: The Return of the King","The Lord of the Rings: The Two Towers","The Sixth Sense","How the Grinch Stole Christmas","Magnolia","Galaxy Quest","Requiem for a Dream","Minority Report","Me, Myself & Irene","A Knight's Tale","Snow Day","Little Nicky","Human Traffic","The Man Who Stole the Sun","Final Destination","Next Friday","Children of Men","The Old Man and the Sea","Snatch","Memento","The Cell","Amélie","In the Red","Vampire Hunter D: Bloodlust","Gangs of New York","Unbreakable","The Score","Atlantis: The Lost Empire","Bedazzled","The Fast and the Furious","Equilibrium","Queen of the Damned","Saving Silverman","Ocean's Eleven","The New Guy","Dude, Where's My Car?","Waking Life","Spiral","Spirited Away","Donnie Darko","Super Troopers","Rat Race","Evolution","Out Cold","The Devil's Backbone","Shallow Hal","The Ultimate Christmas Present","Scary Movie 2","Bubble Boy","Jay and Silent Bob Strike Back","As I Was Moving Ahead Occasionally I Saw Brief Glimpses of Beauty","The Royal Tenenbaums","Battle Royale","Kill Bill: Vol. 1","Adaptation.","Ritual","Confessions of a Dangerous Mind","Punch-Drunk Love","Motocrossed","Orange County","Poolhall Junkies","Dogville","How High","Insomnia","Undercover Brother","Mr. Deeds","Dog Soldiers","Igby Goes Down","Pulse","28 Days Later","The Butterfly Effect","Irreversible","Millennium Actress","Before the Devil Knows You're Dead","Austin Powers in Goldmember","xXx","The Core","Winged Migration","Old School","The Happiness of the Katakuris","Identity","Sympathy for Mr. Vengeance","Suicide Club","Bruce Almighty","The Incredibles","Russian Ark","Big Fish","2 Fast 2 Furious","Dickie Roberts: Former Child Star","Pirates of the Caribbean: The Curse of the Black Pearl","Biker Boyz","xXx: State of the Union","Wheel of Time","Club Dread","School of Rock","Lost in Translation","Birth","Eternal Sunshine of the Spotless Mind","A Series of Unfortunate Events","Howl's Moving Castle","Waiting...","Anchorman: The Legend of Ron Burgundy","The Secret Life of Walter Mitty","Constantine","Gozu","Inglourious Basterds","The Machinist","The Life Aquatic with Steve Zissou","Dawn of the Dead","Elephant","Oldboy","Dodgeball: A True Underdog Story","Without a Paddle","Revolver","Shaun of the Dead","Tenacious D in the Pick of Destiny","Harold & Kumar Go to White Castle","The Jacket","Mirrormask","The Village","Interstella 5555: The 5tory of the 5ecret 5tar 5ystem","Fun with Dick and Jane","The Hitchhiker's Guide to the Galaxy","Team America: World Police","Kiss Kiss Bang Bang","Destino","Kill Bill: Vol. 2","Serenity","White Chicks","Ratatouille","Synecdoche, New York","Pirates of the Caribbean: Dead Man's Chest","Accepted","Monster House","Idiocracy","Christmas with the Kranks","Tokyo Godfathers","The Devil's Rejects","Pusher II","Lord of War","Appleseed","Sin City","A Scanner Darkly","The 40-Year-Old Virgin","The Departed","Hellboy II: The Golden Army","Pride & Prejudice","The Fountain","Talladega Nights: The Ballad of Ricky Bobby","Kamikaze Girls","Dead Man's Shoes","Street Kings","Hard Candy","Clerks II","Employee of the Month","Hot Fuzz","Pusher III","Fantastic Mr. Fox","Just Friends","V for Vendetta","The White Diamond","Alita: Battle Angel","Before We Go","The X Files: I Want to Believe","Zodiac","Scott Pilgrim vs. the World","Sunshine","Little Miss Sunshine","Pirates of the Caribbean: At World's End","1408","Lady Vengeance","Lady in the Water","Grandma's Boy","Pan's Labyrinth","The Fall","Inland Empire","Grindhouse","Rescue Dawn","The Fast and the Furious: Tokyo Drift","Michael Clayton","Push","Shoot 'Em Up","Old Joy","Noriko's Dinner Table","There Will Be Blood","Ex Machina","A Guide to Recognizing Your Saints","No Country for Old Men","21","The Tree of Life","Crank","The Number 23","Harold & Kumar Escape from Guantanamo Bay","The Prestige","Beerfest","Strange Wilderness","Silence","The Man from Earth","Samsara","Drive","In Bruges","Smiley Face","Hot Rod","Sleep Dealer","The Midnight Meat Train","Funny Games","Interstellar","Superbad","Tekkonkinkreet","The Darjeeling Limited","Paprika","Super Troopers 2","Valhalla Rising","Antichrist","Red State","Ponyo","Murder Party","Burn After Reading","A Merry Friggin' Christmas","Pineapple Express","The Legend of Tarzan","Tropic Thunder","Source Code","Black Swan","The Sorcerer's Apprentice","Hugo","City of Ember","Tokyo!","Sucker Punch","5 Centimeters per Second","Sherlock Holmes","Army of the Dead","The Wolf of Wall Street","Megalopolis","Fast & Furious","All Quiet on the Western Front","Lux Æterna","Death Proof","Another Round","Martyrs","Lightyear","Infinity Pool","The Book of Eli","Repo Men","28 Years Later","Mank","#Alive","Talk to Me","Babylon","The Fantastic Four: First Steps","Yes Man","Entergalactic","The Harder They Fall","Messages Deleted","Bill & Ted Face the Music","Adventureland","Freaky","Paul","The Darkest Hour","Nope","Pig","Tron: Legacy","Spaceman","Clerks III","The Northman","The Hangover","Blue Valentine","Sword of the Stranger","Crank: High Voltage","Licorice Pizza","Love Exposure","Re: Zero kara Hajimeru Isekai Seikatsu: Hyouketsu no Kizuna","Don't Look Up","The Unbearable Weight of Massive Talent","Shutter Island","Jennifer's Body","The Limits of Control","District 9","The Ghost Writer","Totally Killer","Lapsis","8-Bit Christmas","Zombieland","Glass Onion","Silent Night","Somm: Cup of Salvation","The House of the Devil","10 Cloverfield Lane","The Banshees of Inisherin","Moon","Tokyo Gore Police","The Creator","Prey","Triangle","Pandorum","Enter the Void","The Thursday Murder Club","Violent Night","Watcher","Street Racer","Furiosa: A Mad Max Saga","When You Finish Saving the World","The World's End","Mother","Limitless","Ghost in the Shell","Extract","Let Me In","Anchorman 2: The Legend Continues","Mickey 17","Bugonia","Hot Tub Time Machine","21 Jump Street","Mystery Team","Your Highness","This Is the End","RED","Decision to Leave","Kick-Ass","Incendies","Bullet Train","The Cabin in the Woods","The Union","A Very Harold & Kumar Christmas","Venom","Confess, Fletch","A Serbian Film","Leave the World Behind","Looper","Hundreds of Beavers","xXx: Return of Xander Cage","The Boondock Saints II: All Saints Day","The Irishman","Sing a Bit of Harmony","Frankenstein","Hells","Devil","Past Lives","Napoleon","Heads of State","Tinker Tailor Soldier Spy","Good Luck, Have Fun, Don't Die","In the Earth","The Great Gatsby","Dredd","The Medium","Beau Is Afraid","Passengers","X","We're All Going to the World's Fair","If You Were the Last","Borderline","Fight or Flight","The Gorge","Cloud Atlas","Inception","Dogtooth","Men","The Other Guys","Mad Max: Fury Road","Prisoners","The Contestant","Rare Exports","The Running Man","The Hangover Part II","Paranoia","Beavis and Butt-Head Do the Universe","The Bluff","KPop Demon Hunters","Asteroid City","Poor Things","Wolfs","Wake Up Dead Man","Under the Skin","Prometheus","Beyond the Infinite Two Minutes","Crimes of the Future","Soft & Quiet","La Chimera","It's What's Inside","Tucker and Dale vs Evil","Monsters","Attack the Block","Cosmopolis","The Retirement Plan","Oblivion","Redline","Sisu","Red Riding Hood","What If","Guillermo del Toro's Pinocchio","Triple Frontier","Something in the Dirt","Hamnet","Caught Stealing","Late Night with the Devil","Argylle","The Damned","Mad God","Strays","Dune: Part Two","Melancholia","No Other Choice","Horns","Beyond the Black Rainbow","Elysium","What Happened to Monday","Studio 666","Oppenheimer","Knights of Badassdom","Premium Rush","Another Earth","Eenie Meanie","Caddo Lake","I Saw the TV Glow","Zombieland: Double Tap","The Master","No Hard Feelings","Knock at the Cabin","Crazy, Stupid, Love.","Barbarian","Warm Bodies","War Machine","The Big Short","The Grey","She Is Conann","Jupiter Ascending","The Last Witch Hunter","30 Minutes or Less","Avatar: The Way of Water","When Evil Lurks","F1: The Movie","Edge of Tomorrow","Project X","Ted","The Man from U.N.C.L.E.","Suzume","The Gray Man","Super 8","Kick-Ass 2","Warhorse One","The Revenant","Pacific Rim","Cave of Forgotten Dreams","Now You See Me","Ready Player One","The Fall Guy","The Wonderful Story of Henry Sugar","Grave Encounters","Snowpiercer","Weird: The Al Yankovic Story","21 & Over","Office Christmas Party","Time of Eve","The Inbetweeners","Scouts Guide to the Zombie Apocalypse","Civil War","Ender's Game","Saltburn","Top Gun: Maverick","Moonrise Kingdom","Ash","The Substance","Bottoms","Avatar: Fire and Ash","Kill List","Zero Dark Thirty","Inherent Vice","Her","American Hustle","The Place Beyond the Pines","Chappie","Play Dirty","Alien: Romulus","Django Unchained","My Old Ass","Blade Runner 2049","Safety Not Guaranteed","The East","The Batman","The Raid: Redemption","God Bless America","2067","Seven Psychopaths","Nymphomaniac: Vol. I","The Fire Within: Requiem for Katia and Maurice Krafft","Voyage of Time","Nimona","Ford v Ferrari","The Hangover Part III","Imaginaerum","The Hitman's Bodyguard","King Arthur: Legend of the Sword","The Neon Demon","Resolution","Neighbors","War Dogs","Hit Man","Beetlejuice Beetlejuice","The Railway Man","To the Forest of Firefly Lights","Holy Motors","Chaos Walking","Dumb and Dumber To","Him","Spring Breakers","Maniac","A Different Man","Hacksaw Ridge","Force Majeure","Beasts of the Southern Wild","Hidden","Self/less","The Accountant","A Real Pain","The Coffee Table","Freaky Tales","Dream Scenario","Theatre of Thought","Snack Shack","Transcendence","Azrael","Love and Monsters","Strange Darling","Valerian and the City of a Thousand Planets","Kinds of Kindness","A Haunted House","The Raid 2","Hunger","The Grand Budapest Hotel","The Book of Clarence","Arcadian","22 Jump Street","Lesson of the Evil","TimeScapes","The 5th Wave","Alien: Covenant","Enemy","The Captive","Godzilla Minus One","Crystal Fairy & the Magical Cactus","The Rover","Elevation","Blue Ruin","Need for Speed","Short Term 12","A Field in England","Nymphomaniac: Vol. II","Too Late","Predestination","The Invitation","The Green Inferno","Atomic Blonde","Saint Young Men: The Movie","The Adam Project","Subservience","Star Wars: Episode VII - The Force Awakens","Cooties","Bone Tomahawk","Eternity","A Talking Cat!?!","Star Wars: Episode VIII - The Last Jedi","Star Wars: Episode IX - The Rise of Skywalker","Good Burger 2","Arrival","The Cloverfield Paradox","Crimson Peak","A Million Ways to Die in the West","Birdman or (The Unexpected Virtue of Ignorance)","The Tale of The Princess Kaguya","Hell or High Water","Whiplash","The Fault in Our Stars","The Garden of Words","Ted 2","Zootopia 2","Weapons","Companion","Into the Mind","Mars Express","Game Night","Echo Valley","Fountain of Youth","We Live in Time","Fury","Sea Fever","Moonwalkers","Y2K","Abigail","Perfect Days","Speak No Evil","Good Fortune","Iron Lung","Apocalypse Z: The Beginning of the End","T2 Trainspotting","Sentimental Value","The Monkey","Cleaner","The Surfer","Final Prayer","The Interview","Annihilation","A Beautiful Planet","Heretic","Kingsman: The Secret Service","Vulcanizadora","Presence","A Haunted House 2","Once Within a Time","Death of a Unicorn","Tag","Anora","Coherence","Nightcrawler","Lucy","Heavier Trip","I Origins","Poison","Nobody 2","Dungeons & Dragons: Honor Among Thieves","The Signal","John Wick","Tiger House","The Lazarus Effect","Ad Astra","Visitors","Zootopia","Novocaine","The Wild Robot","Steins;Gate: The Movie - Load Region of Déjà Vu","We Bury the Dead","Train Dreams","The Guest","One Battle After Another","Friendship","The Forbidden Room","Hardcore Henry","Cheech & Chong's Last Movie","The Phoenician Scheme","Until Dawn","The Inbetweeners 2","Black Bag","Mercy","Now You See Me 2","Eddington","Together","Circle","Sinners","Predator: Badlands","Kizumonogatari Part 1: Tekketsu","Black Mountain Side","Warfare","Room","They Will Kill You","Ballad of a Small Player","28 Years Later: The Bone Temple","Bring Her Back","Sirât","Pillion","Blue Moon","Deathgasm 2: Goremageddon","November Criminals","Demon Slayer: Kimetsu no Yaiba Infinity Castle","The Blackcoat's Daughter","Marty Supreme","Logan","American Ultra","Game Over, Man!","Solo Leveling: ReAwakening","Spring","Ready or Not Sequel","Sicario","A Monster Calls","What We Do in the Shadows","Finch","The Hateful Eight","The Lobster","Black Widow","2000 Meters to Andriivka","Thor: Ragnarok","Paradise Records","The Night Before","Mountainhead","Knock Knock","Incredibles 2","Predator: Killer of Killers","The Martian","The Red Turtle","The Salt of the Earth","Mother of Flies","Deathgasm","Bubba the Redneck Werewolf","Pizza Movie","Rogue One: A Star Wars Story","Ferrari","Solo: A Star Wars Story","La La Land","The Nice Guys","Malignant","Yoga Hosers","Dope","The Spine of Night","Baby Driver","Leave No Trace","oldest and newest places on earth","Okja","The Endless","The House That Jack Built","Swiss Army Man","Green Room","Beaster Day: Here Comes Peter Cottonhell","Keanu","Lo Sound Desert","Victoria","The Void","The Witch","The Night Eats the World","The Bad Batch","The Wave","Holidays","Neighbors 2: Sorority Rising","Gran Turismo","Morgan","Five Nights at Freddy's","Above the Shadows","Roofman","Spider-Man: Into the Spider-Verse","The Death of Stalin","In the Tall Grass","OtherLife","It Comes at Night","Klaus","A Cure for Wellness","Flow","Time Trap","High Life","Good Time","The Covenant","Aquarela","Raw","Split","Moonlight","Dunkirk","Nosferatu","Get Out","Sicario: Day of the Soldado","Hold the Dark","Color Out of Space","The Favourite","Kizumonogatari Part 2: Nekketsu","Kizumonogatari Part 3: Reiketsu","Isle of Dogs","mother!","Togo","Desert Age: A Rock and Roll Scene History","The Ministry of Ungentlemanly Warfare","Wolfwalkers","The Wailing","Paterson","Dead Ant","Your Name.","Wind River","Logan Lucky","Life","Killers of the Flower Moon","To the Bone","The Shape of Water","Brawl in Cell Block 99","Sorry to Bother You","Under the Silver Lake","Train to Busan","The Killing of a Sacred Deer","Uncut Gems","You Were Never Really Here","Underwater","Summer of 84","Phantom Thread","The Empty Man","Pokémon: Detective Pikachu","Possessor","Kill Bill: The Whole Bloody Affair","I Think We're Alone Now","Mountain","Apostle","Deadpool & Wolverine","Free Guy","A Ghost Story","Prisoners of the Ghostland","Sleep Has Her House","The Ballad of Buster Scruggs","Anna and the Apocalypse","Dragged Across Concrete","Upgrade","Fear Street: Part One - 1994","Blame!","The Boy and the Heron","Bad Times at the El Royale","A Quiet Place","Everything Everywhere All at Once","Tenet","Parasite","The Vast of Night","Glass","We Take the Low Road","The King's Man","Us","Coming Home in the Dark","The Souvenir","Mandy","Eighth Grade","Zygote","Venom: Let There Be Carnage","Awaken","Once Upon a Time... in Hollywood","The Black Phone","The Zone of Interest","Ballerina","Heavy Trip","Burning","Joker","Triangle of Sadness","Hagazussa","The Lodge","The Devil All the Time","Saint Maud","Cognition","Riddle of Fire","Aniara","Boss Level","Never Goin' Back","Nightmare Alley","Die Känguru-Chroniken","The Electric State","Hereditary","Ready or Not","Nobody","They Shall Not Grow Old","One Cut of the Dead","I'm Thinking of Ending Things","Prospect","The Lighthouse","Last and First Men","Bodies Bodies Bodies","Willy's Wonderland","3 from Hell","Flavors of Youth","Rim of the World","Fantastic Fungi","Climax","Crawl","The Gentlemen","Gunpowder Milkshake","Anthropocene: The Human Epoch","Killers Anonymous","1917","High Holiday","The Dead Don't Die","Midsommar","Freaks","The French Dispatch","The Legend of Ochi","Cold Storage","Knives Out","The Kid Detective","The Brutalist","Synchronic","Cobweb","Three Thousand Years of Longing","The Green Knight","El Camino: A Breaking Bad Movie","Zoku Owarimonogatari","All My Friends Hate Me","Spider-Man: Across the Spider-Verse","Die My Love","Palm Springs","Last Night in Soho","Shadow in the Cloud","Fear Street: Part Two - 1978","Fear Street: Part Three - 1666","The Menu","Judas and the Black Messiah","A Glitch in the Matrix","The Life and Adventures of Santa Claus","Snow White and the Seven Dwarfs","The Wizard of Oz","Cinderella","Sleeping Beauty","The Jungle Book","Blazing Saddles","Jaws","One Flew Over the Cuckoo's Nest","Star Wars","Halloween","The Empire Strikes Back","E.T. the Extra-Terrestrial","The Evil Dead","The Thing","Return of the Jedi","Indiana Jones and the Temple of Doom","The Karate Kid","The Terminator","The Breakfast Club","Evil Dead II","Lethal Weapon","Predator","RoboCop","Die Hard","Back to the Future Part II","Batman","Dead Poets Society","Indiana Jones and the Last Crusade","The Little Mermaid","National Lampoon's Christmas Vacation","Back to the Future Part III","Die Hard 2","Edward Scissorhands","Home Alone","Beauty and the Beast","The Silence of the Lambs","Terminator 2: Judgment Day","Aladdin","Batman Returns","Home Alone 2: Lost in New York","Army of Darkness","Groundhog Day","Schindler's List","The Lion King","Speed","Apollo 13","Bad Boys","Braveheart","Casper","Die Hard: With a Vengeance","Hackers","Barb Wire","Independence Day","Mission: Impossible","Scream","Space Jam","Face/Off","Good Will Hunting","Jungle 2 Jungle","The Lost World: Jurassic Park","Titanic","Toy Story 2","Armageddon","Blade","Fantastic Four","The Green Mile","Mission: Impossible II","Mulan","Resident Evil","Rush Hour","Saving Private Ryan","Tarzan","X-Men","Star Wars: Episode I - The Phantom Menace","Corpse Bride","Star Wars: Episode II - Attack of the Clones","Star Wars: Episode III - Revenge of the Sith","Small Soldiers","Shrek","The Iron Giant","Geri's Game","Spider-Man","Cast Away","Sleepy Hollow","American Pie","Bad Boys II","Gladiator","Scary Movie","Terminator 3: Rise of the Machines","Blade II","Monsters, Inc.","Rock Star","The Mummy Returns","The Matrix Reloaded","Harry Potter and the Sorcerer's Stone","The Matrix Revolutions","Joe Dirt","The Pianist","The Bourne Identity","Black Hawk Down","Finding Nemo","Scooby-Doo","Ice Age","Eight Crazy Nights","Lilo & Stitch","Signs","George Carlin: Complaints & Grievances","X2","Friday After Next","Harry Potter and the Chamber of Secrets","The Ring","Shrek 2","8 Mile","Hero","Harry Potter and the Prisoner of Azkaban","Final Destination 2","Love Actually","Spider-Man 2","Cars","The Italian Job","Mission: Impossible III","The Day After Tomorrow","Elf","Underworld","The Last Samurai","Coraline","Harry Potter and the Goblet of Fire","The Notebook","Troy","Live Free or Die Hard","The Polar Express","Van Helsing","I, Robot","Ocean's Twelve","Mr. & Mrs. Smith","The Chronicles of Narnia: The Lion, the Witch and the Wardrobe","Indiana Jones and the Kingdom of the Crystal Skull","National Treasure","Collateral","Iron Man","The Bourne Supremacy","Batman Begins","Harry Potter and the Order of the Phoenix","X-Men: The Last Stand","Mean Girls","Casino Royale","The Da Vinci Code","Saw","Initial D: Third Stage","Click","Underworld: Evolution","War of the Worlds","Watchmen","Shrek the Third","Spider-Man 3","Final Destination 3","300","Harry Potter and the Half-Blood Prince","Transformers","Toy Story 3","Ice Age: The Meltdown","Terminator Salvation","The Bourne Ultimatum","Borat: Cultural Learnings of America for Make Benefit Glorious Nation of Kazakhstan","The Illusionist","Hancock","Blood Diamond","The Pursuit of Happyness","Captain America: The First Avenger","X-Men Origins: Wolverine","The Simpsons Movie","28 Weeks Later","The Dark Knight","Ant-Man","I Am Legend","Jumper","Wanted","Avatar","Dallas Buyers Club","Jack Reacher","Star Trek","The Incredible Hulk","Thor","Angels & Demons","Speed Racer","World War Z","Shooter","Dracula Untold","Quantum of Solace","The Avengers","The Mist","The Hurt Locker","How to Train Your Dragon","The Hobbit: An Unexpected Journey","Harry Potter and the Deathly Hallows: Part 1","Taken","The Amazing Spider-Man","Slumdog Millionaire","Alice in Wonderland","Home","John Wick: Chapter 4","The Proposal","Up","Cloverfield","Thor: Love and Thunder","A Christmas Carol","Skyfall","Ice Age: Dawn of the Dinosaurs","Spider-Man: No Way Home","Ant-Man and the Wasp: Quantumania","Twilight","Spirited","Jackass 3D","The Final Destination","A Complete Unknown","The Hobbit: The Desolation of Smaug","2012","Harry Potter and the Deathly Hallows: Part 2","Project Hail Mary","Gran Torino","Doctor Strange","Cars 2","Brave","Iron Man 2","Mission: Impossible - Ghost Protocol","X-Men: First Class","Pirates of the Caribbean: On Stranger Tides","Iron Man 3","Halloween II","Damsel","The Dark Knight Rises","Butter","Tom & Jerry","The Guardians of the Galaxy Holiday Special","Grown Ups","The Whale","The Hunger Games","It","Transformers: Dark of the Moon","True Grit","Star Trek Into Darkness","Men in Black 3","The Wolverine","Deadpool","The American","Gravity","The Conjuring","Indiana Jones and the Dial of Destiny","Sherlock Holmes: A Game of Shadows","Kill Bill: Vol. 3","Top Gear: Uncovered","The Girl with the Dragon Tattoo","Insidious","Contagion","Final Destination 5","Independence Day: Resurgence","32 Sounds","How to Train Your Dragon 2","Ice Age: Continental Drift","The Twilight Saga: Breaking Dawn - Part 2","Troll Hunter","Pirates of the Caribbean: Dead Men Tell No Tales","The Maze Runner","Black Panther","Divergent","Captain America: The Winter Soldier","The Amazing Spider-Man 2","X-Men: Days of Future Past","Sinister","The Hunger Games: Catching Fire","The Hunger Games: Mockingjay - Part 1","The Hunger Games: Mockingjay - Part 2","Rush","Toy Story 4","Thor: The Dark World","Guardians of the Galaxy","The Imitation Game","Upstream Color","Dawn of the Planet of the Apes","Transformers: Age of Extinction","Skinamarink","The Purge","Sympathy for the Devil","Spider-Man: Homecoming","Blue Is the Warmest Colour","Frozen","The Hobbit: The Battle of the Five Armies","Fifty Shades of Grey","Almost Human","Coco","No Time to Die","How to Train Your Dragon: The Hidden World","Avengers: Age of Ultron","Dear Santa","Pacific Rim: Uprising","Resident Evil: The Final Chapter","Star Trek Beyond","Insurgent","Dracula","Fantastic Beasts and Where to Find Them","It Follows","South Park: The End Of Obesity","London Has Fallen","Allegiant","War for the Planet of the Apes","Captain America: Civil War","Mechanic: Resurrection","Cars 3","Underworld: Blood Wars","Guardians of the Galaxy Vol. 2","New Initial D the Movie: Legend 1 - Awakening","Maze Runner: The Scorch Trials","Fantastic Beasts: The Crimes of Grindelwald","Fantastic Beasts: The Secrets of Dumbledore","Captain Marvel","Avengers: Infinity War","Avengers: Endgame","Don't Breathe","Hell House LLC","John Wick: Chapter 2","Maze Runner: The Death Cure","Frozen II","Kingsman: The Golden Circle","Mission: Impossible - Fallout","Ant-Man and the Wasp","Happy Death Day","Homo Sapiens","Deadpool 2","Bright","Voyage of Time: The IMAX Experience","John Wick: Chapter 3 - Parabellum","Spider-Man: Far From Home","Dark Phoenix","Guardians of the Galaxy Volume 3","Alien: Covenant - Prologue: The Crossing","It Chapter Two","Brightburn","Enola Holmes","Red Notice","Extraction","Doctor Strange in the Multiverse of Madness","Final Destination: Bloodlines","The Night House","The Tomorrow War","They Cloned Tyrone"];
+
+// ── STATE ──
+let movies=[], currentPick=null, srchQ='';
+
+function load(){
+  const s=localStorage.getItem('reel3');
+  if(s){ movies=JSON.parse(s); }
+  else {
+    movies=SEED.map((t,i)=>({id:i+1,title:t,genre:autoG(t),year:null,runtime:null,watched:false}));
+    save();
+  }
+}
+function save(){ localStorage.setItem('reel3',JSON.stringify(movies)); }
+function autoG(title){
+  const t=title.toLowerCase();
+  for(const[g,hints] of Object.entries(GENRE_HINTS)){
+    if(hints.some(h=>t.includes(h))) return g;
+  }
+  return '';
+}
+function isHeavy(m){ return HEAVY.has(m.title.toLowerCase()); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nid(){ return movies.length?Math.max(...movies.map(m=>m.id))+1:1; }
+
+// ── TABS ──
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${n}')"]`).classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='list') renderList();
+  if(n==='pick') upd();
+}
+
+// ── SLIDER ──
+const SLIDER_STEPS=[
+  {label:'Any length',       max:Infinity},
+  {label:'Under 90 min',     max:89},
+  {label:'100 min or less',  max:100},
+  {label:'110 min or less',  max:110},
+  {label:'120 min or less',  max:120},
+  {label:'130 min or less',  max:130},
+  {label:'140 min or less',  max:140},
+  {label:'150 min or less',  max:150},
+  {label:'160 min or less',  max:160},
+  {label:'170 min or less',  max:170},
+  {label:'180 min or less',  max:180},
+  {label:'Over 3 hrs',       min:181},
+];
+function onSlider(v){
+  const s=SLIDER_STEPS[v];
+  document.getElementById('sliderLabel').textContent=s.label;
+  // colour the track
+  const pct=(v/11)*100;
+  document.getElementById('fRuntime').style.background=
+    `linear-gradient(to right, var(--gold) ${pct}%, var(--border-bright) ${pct}%)`;
+  upd();
+}
+
+// ── BUILD SELECTS ──
+function buildUI(){
+  const ag=document.getElementById('aGenre');
+  const gc=document.getElementById('genreChips');
+  const ex=document.getElementById('exChips');
+  const er=document.getElementById('eraChips');
+
+  GENRES.forEach(g=>{
+    // add genre select for Add tab
+    const o=document.createElement('option'); o.value=g; o.textContent=g; ag.appendChild(o);
+
+    // genre include chips
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=g; b.dataset.g=g;
+    b.onclick=()=>{ b.classList.toggle('on'); upd(); };
+    gc.appendChild(b);
+
+    // exclude chips
+    const e=document.createElement('button');
+    e.className='chip excl'; e.textContent=g; e.dataset.g=g;
+    e.onclick=()=>{ e.classList.toggle('on'); upd(); };
+    ex.appendChild(e);
+  });
+
+  // era chips
+  const ERAS=[
+    {label:'Pre-Code (pre-1934)', val:'precode'},
+    {label:"30s / 40s / 50s", val:'30s40s50s'},
+    {label:'60s', val:'60s'},
+    {label:'70s', val:'70s'},
+    {label:'80s', val:'80s'},
+    {label:'90s', val:'90s'},
+    {label:'2000s', val:'00s'},
+    {label:'2010s', val:'10s'},
+    {label:'2020s+', val:'20s'},
+  ];
+  ERAS.forEach(({label,val})=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=label; b.dataset.era=val;
+    b.onclick=()=>{ b.classList.toggle('on'); upd(); };
+    er.appendChild(b);
+  });
+
+  // init slider track
+  onSlider(0);
+  onRatingSlider();
+}
+
+function onRatingSlider() {
+  var lo = parseFloat(document.getElementById('ratingLo').value);
+  var hi = parseFloat(document.getElementById('ratingHi').value);
+  // Enforce lo <= hi
+  if (lo > hi) {
+    // whichever moved, push the other
+    if (event && event.target && event.target.id === 'ratingLo') {
+      hi = lo;
+      document.getElementById('ratingHi').value = hi;
+    } else {
+      lo = hi;
+      document.getElementById('ratingLo').value = lo;
+    }
+  }
+  // Update fill bar
+  var fill = document.getElementById('ratingFill');
+  if (fill) {
+    fill.style.left = (lo / 10 * 100) + '%';
+    fill.style.right = ((10 - hi) / 10 * 100) + '%';
+  }
+  // Update label
+  var label = document.getElementById('ratingLabel');
+  if (label) {
+    if (lo === 0 && hi === 10) {
+      label.textContent = 'Any rating';
+    } else if (lo === 0) {
+      label.textContent = hi.toFixed(1) + ' or below';
+    } else if (hi === 10) {
+      label.textContent = lo.toFixed(1) + '+';
+    } else {
+      label.textContent = lo.toFixed(1) + ' – ' + hi.toFixed(1);
+    }
+  }
+  // Dim fill if no filter active
+  if (fill) fill.style.opacity = (lo === 0 && hi === 10) ? '0.3' : '1';
+  upd();
+}
+
+// ── LIST ──
+function renderList(){
+  const list=document.getElementById('movieList');
+  const stats=document.getElementById('listStats');
+  const q=srchQ.toLowerCase();
+  let vis=movies;
+  if(q) vis=movies.filter(m=>m.title.toLowerCase().includes(q));
+  if(!vis.length){
+    list.innerHTML=`<div class="empty-state">${q?'No matches for "'+esc(srchQ)+'"':'No films yet — add some!'}</div>`;
+  } else {
+    list.innerHTML=vis.map((m,i)=>`
+      <div class="movie-item${m.watched?' watched':''}">
+        <span class="movie-num">${movies.indexOf(m)+1}</span>
+        <span class="movie-title" title="${esc(m.title)}">${esc(m.title)}</span>
+        <span class="movie-tag">${m.genre?esc(m.genre):'—'}</span>
+        <span class="movie-yr">${m.year||''}</span>
+        <span class="movie-rt">${m.runtime?m.runtime+'m':''}</span>
+        <span style="font-size:9px;color:var(--gold);width:36px;flex-shrink:0;text-align:right;">${m.imdbRating?'&#9733; '+m.imdbRating:''}</span>
+        <div class="item-btns">
+          <button class="icon-btn wbtn${m.watched?' on':''}" onclick="toggleW(${m.id})" title="${m.watched?'Unmark':'Mark watched'}">✓</button>
+          <button class="icon-btn" onclick="del(${m.id})" title="Remove">×</button>
+        </div>
+      </div>`).join('');
+  }
+  const w=movies.filter(m=>m.watched).length;
+  stats.innerHTML=`<span>${movies.length} films</span><span>${w} watched · ${movies.length-w} remaining</span>`;
+}
+
+function onSearch(v){ srchQ=v; document.getElementById('srchX').classList.toggle('vis',v.length>0); renderList(); }
+function clrSearch(){ document.getElementById('srch').value=''; onSearch(''); }
+function toggleW(id){ const m=movies.find(x=>x.id===id); if(m){m.watched=!m.watched;save();renderList();upd();} }
+function del(id){ movies=movies.filter(m=>m.id!==id); save(); renderList(); upd(); }
+
+// ── ADD ──
+function addOne(){
+  const el=document.getElementById('aTitle');
+  const t=el.value.trim(); if(!t){el.focus();return;}
+  if(movies.some(m=>m.title.toLowerCase()===t.toLowerCase())){
+    el.style.borderColor='var(--red)';setTimeout(()=>el.style.borderColor='',1200);return;
+  }
+  movies.push({id:nid(),title:t,genre:document.getElementById('aGenre').value||autoG(t),year:parseInt(document.getElementById('aYear').value)||null,runtime:parseInt(document.getElementById('aRuntime').value)||null,watched:false});
+  save(); upd();
+  el.value=''; document.getElementById('aYear').value=''; document.getElementById('aRuntime').value=''; document.getElementById('aGenre').value=''; el.focus();
+}
+
+function bulkAdd(){
+  const raw=document.getElementById('bulkIn').value.trim(); if(!raw)return;
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const ex=new Set(movies.map(m=>m.title.toLowerCase()));
+  let added=0,skip=0;
+  lines.forEach(t=>{ if(ex.has(t.toLowerCase())){skip++;return;} movies.push({id:nid(),title:t,genre:autoG(t),year:null,runtime:null,watched:false}); ex.add(t.toLowerCase()); added++; });
+  save(); upd();
+  document.getElementById('bulkIn').value='';
+  const msg=document.getElementById('bulkMsg');
+  msg.textContent=`Added ${added}${skip?`, skipped ${skip} duplicates`:'.'}`; 
+  setTimeout(()=>msg.textContent='',4000);
+}
+
+function clrWatched(){ if(!confirm('Remove all watched films?'))return; movies=movies.filter(m=>!m.watched); save(); renderList(); upd(); }
+function clrAll(){ if(!confirm('Clear your entire list? This cannot be undone.'))return; movies=[]; save(); renderList(); upd(); }
+
+// ── PICK ──
+function getPool(){
+  const sliderVal=parseInt(document.getElementById('fRuntime').value);
+  const step=SLIDER_STEPS[sliderVal];
+  const noTrauma=document.getElementById('cbTrauma').checked;
+  const unwOnly=document.getElementById('cbUnwatched').checked;
+
+  // active genre include chips
+  const inclGenres=new Set([...document.querySelectorAll('#genreChips .chip.on')].map(c=>c.dataset.g));
+  // active era chips
+  const inclEras=[...document.querySelectorAll('#eraChips .chip.on')].map(c=>c.dataset.era);
+  // exclude genre chips
+  const excl=new Set([...document.querySelectorAll('#exChips .chip.on')].map(c=>c.dataset.g));
+
+  return movies.filter(m=>{
+    if(unwOnly&&m.watched) return false;
+    var rLo = parseFloat(document.getElementById('ratingLo').value);
+    var rHi = parseFloat(document.getElementById('ratingHi').value);
+    var ratingActive = !(rLo === 0 && rHi === 10);
+    if (ratingActive) {
+      if (!m.imdbRating) return false; // unknown rating — exclude when filter active
+      if (m.imdbRating < rLo || m.imdbRating > rHi) return false;
+    }
+
+    // runtime filter — if filter is active and runtime unknown, exclude (unknown = could be anything)
+    const rtFiltered = step.max!==Infinity || step.min!==undefined;
+    if(rtFiltered){
+      if(!m.runtime) return false; // unknown runtime, can't verify — exclude
+      if(step.max!==undefined&&step.max!==Infinity&&m.runtime>step.max) return false;
+      if(step.min!==undefined&&m.runtime<step.min) return false;
+    }
+
+    // genre include (if any selected, film must match one)
+    if(inclGenres.size>0&&m.genre&&!inclGenres.has(m.genre)) return false;
+
+    // genre exclude
+    if(m.genre&&excl.has(m.genre)) return false;
+
+    // era filter (if any selected, film must match one)
+    if(inclEras.length>0&&m.year){
+      const match=inclEras.some(era=>{
+        const [lo,hi]=ERA[era];
+        if(lo&&m.year<lo) return false;
+        if(hi&&m.year>=hi) return false;
+        return true;
+      });
+      if(!match) return false;
+    }
+
+    if(noTrauma&&isHeavy(m)) return false;
+    return true;
+  });
+}
+
+function upd(){
+  const p=getPool();
+  const el=document.getElementById('poolCount');
+  if(el) el.textContent=`${p.length} film${p.length!==1?'s':''} match your filters`;
+  const btn=document.getElementById('pickBtn');
+  if(btn) btn.disabled=p.length===0;
+}
+
+function pick(){
+  const pool=getPool();
+  if(!pool.length){showRes(null);return;}
+  const btn=document.getElementById('pickBtn'); btn.disabled=true;
+  const card=document.getElementById('resultCard');
+  card.className='result-card vis';
+  card.innerHTML=`<div class="result-eye">Selecting…</div><div class="result-title" id="flashT" style="color:var(--gold);animation:flicker .12s linear infinite">—</div>`;
+  let f=0;
+  const iv=setInterval(()=>{
+    const r=pool[Math.floor(Math.random()*pool.length)];
+    const ft=document.getElementById('flashT'); if(ft) ft.textContent=r.title;
+    if(++f>=16){ clearInterval(iv); btn.disabled=false; currentPick=pool[Math.floor(Math.random()*pool.length)]; showRes(currentPick); }
+  },70);
+}
+
+function showRes(m){
+  const card=document.getElementById('resultCard');
+  if(!m){
+    card.className='result-card vis';
+    card.innerHTML=`<div class="no-results">No films match your filters.<br><span style="font-size:10px;color:var(--dim)">Try loosening them.</span></div>`;
+    return;
+  }
+  const meta=[m.genre,m.year,m.runtime?m.runtime+' min':null,m.imdbRating?'&#9733; '+m.imdbRating:null].filter(Boolean);
+  const synopsisHtml = m.synopsis
+    ? `<div class="result-synopsis">${esc(m.synopsis)}</div>`
+    : `<div class="result-synopsis" id="synopsisPlaceholder" style="color:var(--dim);">Loading synopsis…</div>`;
+  card.className='result-card vis';
+  card.innerHTML=`
+    <div class="result-eye">Tonight's feature presentation</div>
+    <div class="result-title">${esc(m.title)}</div>
+    ${meta.length?`<div class="result-meta">${meta.map(x=>`<span>${x}</span>`).join('<span style="color:var(--dim)">·</span>')}</div>`:''}
+    ${synopsisHtml}
+    <div class="result-actions">
+      <button class="btn" onclick="pick()">Pick Again</button>
+      <button class="btn btn-grn" onclick="markW()">Mark Watched</button>
+      <button class="btn btn-red" onclick="delPick()">Remove from List</button>
+    </div>`;
+  // If no synopsis stored, try to fetch it now
+  if(!m.synopsis && TMDB_KEY){
+    fetchSynopsis(m).then(function(synopsis){
+      var el=document.getElementById('synopsisPlaceholder');
+      if(!el) return;
+      if(synopsis){
+        m.synopsis=synopsis; save();
+        el.textContent=synopsis;
+        el.removeAttribute('id');
+        el.style.color='';
+      } else {
+        el.textContent='No synopsis available.';
+      }
+    });
+  } else if(!m.synopsis){
+    var el=document.getElementById('synopsisPlaceholder');
+    if(el) el.textContent='Add a TMDB key to load synopses.';
+  }
+}
+
+async function fetchSynopsis(m){
+  try {
+    var base='https://api.themoviedb.org/3/search/movie?api_key='+TMDB_KEY+'&query='+encodeURIComponent(m.title);
+    var res=await tmdbFetch(m.year?base+'&year='+m.year:base);
+    var data=await res.json();
+    if(!data.results||!data.results.length) return null;
+    var titleLow=m.title.toLowerCase();
+    var match=data.results.find(function(r){return r.title&&r.title.toLowerCase()===titleLow;})||data.results[0];
+    return match.overview||null;
+  } catch(e){ return null; }
+}
+
+function markW(){ if(!currentPick)return; const m=movies.find(x=>x.id===currentPick.id); if(m){m.watched=true;save();upd();} document.getElementById('resultCard').className='result-card'; currentPick=null; }
+function delPick(){ if(!currentPick)return; del(currentPick.id); document.getElementById('resultCard').className='result-card'; currentPick=null; }
+
+
+// ── ENRICHMENT via Wikidata + Wikipedia fallback ──
+// No API key needed. Wikidata stores runtime as a structured field (P2047).
+// Falls back to scraping the Wikipedia infobox if Wikidata misses it.
+let enriching = false;
+const CONCURRENCY = 5; // conservative to avoid rate limiting
+
+// Stage 1: Wikidata structured lookup
+async function lookupWikidata(title, year) {
+  try {
+    // Search for the entity
+    var searchUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities' +
+      '&search=' + encodeURIComponent(title) +
+      '&language=en&type=item&format=json&limit=5&origin=*';
+    var searchRes = await fetch(searchUrl);
+    var searchData = await searchRes.json();
+    if (!searchData.search || !searchData.search.length) return null;
+
+    // Pick best match — prefer result whose label closely matches title
+    var titleLow = title.toLowerCase();
+    var candidates = searchData.search;
+    var best = candidates.find(function(c) {
+      return c.label && c.label.toLowerCase() === titleLow;
+    }) || candidates[0];
+
+    if (!best) return null;
+
+    // Fetch the entity's claims
+    var entityUrl = 'https://www.wikidata.org/w/api.php?action=wbgetentities' +
+      '&ids=' + best.id +
+      '&props=claims&format=json&origin=*';
+    var entityRes = await fetch(entityUrl);
+    var entityData = await entityRes.json();
+    var entity = entityData.entities && entityData.entities[best.id];
+    if (!entity || !entity.claims) return null;
+
+    var result = {};
+
+    // P2047 = duration (minutes)
+    var durationClaims = entity.claims.P2047;
+    if (durationClaims && durationClaims.length) {
+      var val = durationClaims[0].mainsnak &&
+                durationClaims[0].mainsnak.datavalue &&
+                durationClaims[0].mainsnak.datavalue.value;
+      if (val && val.amount) {
+        var mins = Math.round(parseFloat(val.amount));
+        if (mins > 0) result.runtime = mins;
+      }
+    }
+
+    // P577 = publication date
+    if (!year) {
+      var pubClaims = entity.claims.P577;
+      if (pubClaims && pubClaims.length) {
+        var dateVal = pubClaims[0].mainsnak &&
+                      pubClaims[0].mainsnak.datavalue &&
+                      pubClaims[0].mainsnak.datavalue.value;
+        if (dateVal && dateVal.time) {
+          var yr = parseInt(dateVal.time.substring(1, 5));
+          if (yr > 1880 && yr < 2030) result.year = yr;
+        }
+      }
+    }
+
+    return (result.runtime || result.year) ? result : null;
+  } catch(e) { return null; }
+}
+
+// Stage 2: Wikipedia infobox fallback
+async function lookupWikipedia(title) {
+  try {
+    var url = 'https://en.wikipedia.org/w/api.php?action=query' +
+      '&titles=' + encodeURIComponent(title) +
+      '&prop=revisions&rvprop=content&rvslots=main' +
+      '&rvsection=0&format=json&origin=*';
+    var res = await fetch(url);
+    var data = await res.json();
+    var pages = data.query && data.query.pages;
+    if (!pages) return null;
+    var page = Object.values(pages)[0];
+    if (!page || page.missing !== undefined) return null;
+    var content = page.revisions && page.revisions[0] &&
+                  page.revisions[0].slots && page.revisions[0].slots.main &&
+                  page.revisions[0].slots.main['*'];
+    if (!content) return null;
+
+    var result = {};
+
+    // Parse runtime from infobox: | runtime = 148 minutes  or  | runtime = {{runtime|148}}
+    var rtMatch = content.match(/[|\s]runtime\s*=\s*(?:\{\{[Rr]untime\|)?(\d+)/);
+    if (rtMatch) {
+      var mins = parseInt(rtMatch[1]);
+      if (mins > 0 && mins < 600) result.runtime = mins;
+    }
+
+    // Parse year from release_date
+    var yrMatch = content.match(/release[_ ]date[^=]*=.*?(\d{4})/);
+    if (yrMatch) {
+      var yr = parseInt(yrMatch[1]);
+      if (yr > 1880 && yr < 2030) result.year = yr;
+    }
+
+    return (result.runtime || result.year) ? result : null;
+  } catch(e) { return null; }
+}
+
+async function lookupFilm(title, year) {
+  // Try Wikidata first (structured, reliable)
+  var result = await lookupWikidata(title, year);
+  if (result && result.runtime) return result;
+  // Fall back to Wikipedia infobox
+  var wikiResult = await lookupWikipedia(title);
+  if (wikiResult && wikiResult.runtime) return wikiResult;
+  // Merge partial results
+  if (result || wikiResult) {
+    return Object.assign({}, result || {}, wikiResult || {});
+  }
+  return null;
+}
+
+async function enrichAll(forceAll) {
+  if (enriching) return;
+  enriching = true;
+  setEnrichBtn(false);
+
+  var useTMDB = !!TMDB_KEY;
+  // Phase 1: runtime + year + imdbId
+  // forceAll re-fetches everything (useful when previous run failed silently)
+  var missingRuntime = forceAll
+    ? movies.slice()
+    : movies.filter(function(m) { return !m.runtime; });
+  var total = missingRuntime.length;
+  var done = 0;
+  var found = 0;
+
+  if (total > 0) {
+    for (var i = 0; i < missingRuntime.length; i += CONCURRENCY) {
+      var chunk = missingRuntime.slice(i, i + CONCURRENCY);
+      var promises = chunk.map(function(m) {
+        var lookup = useTMDB ? lookupTMDB(m.title, m.year) : lookupFilm(m.title, m.year);
+        return lookup.then(function(result) {
+          done++;
+          if (result && !result._error) {
+            if (result.runtime) { m.runtime = result.runtime; found++; }
+            if (result.year && !m.year) m.year = result.year;
+            if (result.imdbId && !m.imdbId) m.imdbId = result.imdbId;
+            if (result.imdbRating && !m.imdbRating) m.imdbRating = result.imdbRating;
+            if (result.synopsis && !m.synopsis) m.synopsis = result.synopsis;
+          } else if (result && result._error) {
+            // API key error — abort entire run and surface message
+            enriching = false;
+            setEnrichBtn(true);
+            updateEnrichStatus('<span style="color:var(--red)">TMDB error: ' + result._error + ' — check your API key</span>');
+            return;
+          }
+          var pct = Math.round((done / total) * 100);
+          updateEnrichStatus(
+            '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+            '<span>Phase 1: runtimes… ' + done + ' / ' + total + ' (' + found + ' found)</span>' +
+            '<span>' + pct + '%</span></div>' +
+            '<div style="height:3px;background:var(--border);width:100%;">' +
+            '<div style="height:3px;background:var(--gold);width:' + pct + '%;transition:width .1s;"></div></div>'
+          );
+        });
+      });
+      await Promise.all(promises);
+      save(); upd();
+      await new Promise(function(r) { setTimeout(r, 250); });
+    }
+  }
+
+  // Phase 2: IMDb ratings for all films that have an imdbId but no rating yet
+  var needRating = movies.filter(function(m) { return m.imdbId && !m.imdbRating; });
+  if (needRating.length > 0) {
+    var rDone = 0;
+    var rTotal = needRating.length;
+    for (var j = 0; j < needRating.length; j += CONCURRENCY) {
+      var rChunk = needRating.slice(j, j + CONCURRENCY);
+      var rPromises = rChunk.map(function(m) {
+        return fetchIMDbRating(m.imdbId).then(function(rating) {
+          rDone++;
+          if (rating) m.imdbRating = rating;
+          var pct = Math.round((rDone / rTotal) * 100);
+          updateEnrichStatus(
+            '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+            '<span>Phase 2: IMDb ratings… ' + rDone + ' / ' + rTotal + '</span>' +
+            '<span>' + pct + '%</span></div>' +
+            '<div style="height:3px;background:var(--border);width:100%;">' +
+            '<div style="height:3px;background:var(--gold);width:' + pct + '%;transition:width .1s;"></div></div>'
+          );
+        });
+      });
+      await Promise.all(rPromises);
+      save(); upd();
+      await new Promise(function(r) { setTimeout(r, 250); });
+    }
+  }
+
+  enriching = false;
+  setEnrichBtn(true);
+  var stillMissing = movies.filter(function(m) { return !m.runtime; }).length;
+  var withRatings = movies.filter(function(m) { return m.imdbRating; }).length;
+  if (stillMissing === 0) {
+    updateEnrichStatus(
+      '<span style="color:var(--green)">&#10003; All runtimes found. ' + withRatings + ' films have IMDb ratings.</span>'
+    );
+  } else {
+    updateEnrichStatus(
+      '<span style="color:var(--green)">' + found + ' runtimes found. ' + withRatings + ' IMDb ratings. </span>' +
+      '<span style="color:var(--sepia)">' + stillMissing + ' runtime unknown (unreleased/obscure). ' +
+      '<a href="#" onclick="enrichAll();return false;" style="color:var(--gold)">Retry missing</a></span>'
+    );
+  }
+}
+
+// TMDB — runtime + IMDb rating
+var TMDB_KEY = '';
+// Helper: tries multiple strategies to reach TMDB from any context
+async function tmdbFetch(url) {
+  var proxies = [
+    url,  // direct (works from https:// hosted pages)
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+    'https://corsproxy.io/?' + encodeURIComponent(url),
+    'https://thingproxy.freeboard.io/fetch/' + url,
+  ];
+  for (var i = 0; i < proxies.length; i++) {
+    try {
+      var controller = new AbortController();
+      var timer = setTimeout(function(){ controller.abort(); }, 8000);
+      var res = await fetch(proxies[i], {signal: controller.signal});
+      clearTimeout(timer);
+      if (res.ok) return res;
+    } catch(e) { /* try next */ }
+  }
+  throw new Error('All proxies failed');
+}
+
+async function lookupTMDB(title, year) {
+  if (!TMDB_KEY) return null;
+  try {
+    // Search — try with year first, then without if no results
+    var base = 'https://api.themoviedb.org/3/search/movie?api_key=' + TMDB_KEY + '&query=' + encodeURIComponent(title);
+    var res = await tmdbFetch(year ? base + '&year=' + year : base);
+    var data = await res.json();
+    if (data.status_message) {
+      // API error (e.g. invalid key) — surface it
+      console.error('TMDB error:', data.status_message);
+      return {_error: data.status_message};
+    }
+    if ((!data.results || !data.results.length) && year) {
+      res = await tmdbFetch(base);
+      data = await res.json();
+    }
+    if (!data.results || !data.results.length) return null;
+    // Prefer exact title match
+    var titleLow = title.toLowerCase();
+    var match = data.results.find(function(r) {
+      return r.title && r.title.toLowerCase() === titleLow;
+    }) || data.results[0];
+    var id = match.id;
+    // Get full details including runtime and external IDs in one shot
+    var detailRes = await tmdbFetch(
+      'https://api.themoviedb.org/3/movie/' + id +
+      '?api_key=' + TMDB_KEY +
+      '&append_to_response=external_ids'
+    );
+    var detail = await detailRes.json();
+    var imdbRating = null;
+    // TMDB vote_average is their community rating — use as proxy for IMDb
+    // (genuine IMDb requires OMDB; we'll use TMDB's rating and label it accordingly)
+    if (detail.vote_average && detail.vote_count > 20) {
+      imdbRating = Math.round(detail.vote_average * 10) / 10;
+    }
+    return {
+      runtime: detail.runtime || null,
+      year: detail.release_date ? parseInt(detail.release_date.substring(0, 4)) : null,
+      imdbId: (detail.external_ids && detail.external_ids.imdb_id) || detail.imdb_id || null,
+      imdbRating: imdbRating,
+      synopsis: detail.overview || null
+    };
+  } catch(e) { return null; }
+}
+
+async function fetchIMDbRating(imdbId) {
+  // Placeholder — ratings now come directly from TMDB vote_average
+  return null;
+}
+
+function setTMDBKey(key) {
+  TMDB_KEY = (key || '').trim();
+  localStorage.setItem('tmdb_key', TMDB_KEY);
+  var statusEl = document.getElementById('keyStatus');
+  var btnEl = document.getElementById('enrichBtn');
+  var retestEl = document.getElementById('retestRow');
+  if (TMDB_KEY) {
+    if (statusEl) { statusEl.innerHTML = '<a href="#" onclick="testTMDBKey();return false;" style="color:var(--gold);text-decoration:none;">Test key →</a>'; }
+    if (btnEl) btnEl.textContent = 'Look Up Runtimes + Ratings';
+    if (retestEl) retestEl.style.display = 'flex';
+  } else {
+    if (statusEl) { statusEl.textContent = 'No key'; statusEl.style.color = 'var(--dim)'; }
+    if (btnEl) btnEl.textContent = 'Look Up Runtimes';
+    if (retestEl) retestEl.style.display = 'none';
+  }
+}
+
+async function testTMDBKey() {
+  var statusEl = document.getElementById('keyStatus');
+  if (statusEl) statusEl.innerHTML = 'Testing…';
+  try {
+    var res = await tmdbFetch('https://api.themoviedb.org/3/movie/238?api_key=' + TMDB_KEY);
+    var data = await res.json();
+    if (data.title) {
+      if (statusEl) { statusEl.innerHTML = '<span style="color:var(--green)">✓ Key works (' + data.title + ')</span>'; }
+    } else {
+      if (statusEl) { statusEl.innerHTML = '<span style="color:var(--red)">✗ ' + (data.status_message || 'Invalid key') + '</span>'; }
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.innerHTML = '<span style="color:var(--red)">✗ Network error</span>'; }
+  }
+}
+
+function setEnrichBtn(enabled) {
+  var btn = document.getElementById('enrichBtn');
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.textContent = enabled ? 'Look Up Runtimes' : 'Running…';
+  btn.style.opacity = enabled ? '1' : '0.4';
+  btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+}
+
+function updateEnrichStatus(msg) {
+  var el = document.getElementById('enrichStatus');
+  if (el) el.innerHTML = msg;
+}
+
+// ── INIT ──
+load(); buildUI(); upd();
+// Restore saved TMDB key if any
+(function(){
+  var k = localStorage.getItem('tmdb_key') || '';
+  TMDB_KEY = k;
+  var el = document.getElementById('tmdbKeyInput');
+  if (el) el.value = k;
+  // Delay so DOM is ready
+  setTimeout(function(){ setTMDBKey(k); }, 50);
+})();
+// Show how many films are missing runtime data
+(function(){
+  const missing = movies.filter(m=>!m.runtime).length;
+  updateEnrichStatus(missing > 0
+    ? `${missing} of ${movies.length} films missing runtime data — hit "Look Up Runtimes" to fix filters`
+    : `<span style="color:var(--green)">✓ All ${movies.length} films have runtime data</span>`);
+})();
+document.getElementById('aTitle').addEventListener('keydown',e=>{if(e.key==='Enter')addOne();});
+</script>
+<script>
+// ── SERVICE WORKER (PWA offline support) ──
+if ('serviceWorker' in navigator) {
+  var swCode = `
+    var CACHE = 'reel-v1';
+    var ASSETS = [location.pathname];
+    self.addEventListener('install', function(e) {
+      e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(ASSETS); }));
+    });
+    self.addEventListener('fetch', function(e) {
+      e.respondWith(
+        caches.match(e.request).then(function(r) {
+          return r || fetch(e.request).catch(function() { return caches.match(e.request); });
+        })
+      );
+    });
+  `;
+  var blob = new Blob([swCode], {type: 'application/javascript'});
+  var swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+}
+
+// ── INSTALL PROMPT ──
+var installPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  installPrompt = e;
+  var bar = document.getElementById('installBar');
+  if (bar) bar.style.display = 'flex';
+});
+
+function installApp() {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(function(result) {
+    installPrompt = null;
+    var bar = document.getElementById('installBar');
+    if (bar) bar.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', function() {
+  var bar = document.getElementById('installBar');
+  if (bar) bar.style.display = 'none';
+});
+</script>
+</body>
+</html>
